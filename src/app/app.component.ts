@@ -1,9 +1,10 @@
+import { AdrNumberValidateDirective } from '@adr/number-validate';
 import { Component } from '@angular/core';
 
 @Component({
   selector: 'app-root',
-  imports: [],
-  templateUrl: './app.component.html',
+  imports: [AdrNumberValidateDirective],
+  template: '<input type="text" adrNumberValidate="2.5" />',
   styleUrl: './app.component.css'
 })
 export class AppComponent {

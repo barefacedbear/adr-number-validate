@@ -26,9 +26,6 @@
                 "input": "public"
               }
             ],
-            "styles": [
-              "src/styles.css"
-            ],
             "scripts": []
           },
           "configurations": {
@@ -84,10 +81,40 @@
                 "input": "public"
               }
             ],
-            "styles": [
-              "src/styles.css"
-            ],
             "scripts": []
+          }
+        }
+      }
+    },
+    "@dravishek/number-validate": {
+      "projectType": "library",
+      "root": "projects/dravishek/number-validate",
+      "sourceRoot": "projects/dravishek/number-validate/src",
+      "prefix": "lib",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:ng-packagr",
+          "options": {
+            "project": "projects/dravishek/number-validate/ng-package.json"
+          },
+          "configurations": {
+            "production": {
+              "tsConfig": "projects/dravishek/number-validate/tsconfig.lib.prod.json"
+            },
+            "development": {
+              "tsConfig": "projects/dravishek/number-validate/tsconfig.lib.json"
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "tsConfig": "projects/dravishek/number-validate/tsconfig.spec.json",
+            "polyfills": [
+              "zone.js",
+              "zone.js/testing"
+            ]
           }
         }
       }
