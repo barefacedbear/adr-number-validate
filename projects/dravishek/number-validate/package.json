@@ -1,6 +1,18 @@
 {
   "name": "@dravishek/number-validate",
   "version": "1.0.0",
+  "keywords": [
+    "angular",
+    "javascript",
+    "typescript",
+    "directive",
+    "input-number",
+    "number",
+    "number validation",
+    "validation",
+    "number-validate"
+  ],
+  "license": "MIT",
   "peerDependencies": {
     "@angular/common": "^19.2.0",
     "@angular/core": "^19.2.0"
