@@ -1,4 +1,4 @@
-import { AdrNumberValidateDirective } from '@adr/number-validate';
+import { AdrNumberValidateDirective } from '@dravishek/number-validate';
 import { Component } from '@angular/core';
 
 @Component({
