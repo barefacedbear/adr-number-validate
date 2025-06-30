@@ -1,11 +1,11 @@
-import { Directive, ElementRef, HostListener, input, Optional } from '@angular/core';
+import { Directive, DoCheck, ElementRef, HostListener, input, Optional } from '@angular/core';
 import { NgControl } from '@angular/forms';
 
 @Directive({
   selector: '[adrNumberValidate]',
   standalone: true
 })
-export class AdrNumberValidateDirective {
+export class AdrNumberValidateDirective implements DoCheck {
 
   constructor(private el: ElementRef, @Optional() private control: NgControl) { }
 
@@ -15,6 +15,7 @@ export class AdrNumberValidateDirective {
    * Possible type of patterns allowed: X, X.X
   */
   adrNumberValidate = input<string>('');
+  private previousValue: string = '';
 
   @HostListener("keydown", ["$event"])
   onKeyDown = (event: KeyboardEvent) => this.execute(this.el.nativeElement.value);
@@ -22,6 +23,14 @@ export class AdrNumberValidateDirective {
   @HostListener("paste", ["$event"])
   onPaste = (event: ClipboardEvent) => this.execute(this.el.nativeElement.value);
 
+  ngDoCheck(): void {
+    const currentValue = this.el.nativeElement.value;
+    if (currentValue !== this.previousValue) {
+      this.execute(this.previousValue);
+      this.previousValue = currentValue;
+    }
+  }
+  
   private checkValue(value: string): RegExpMatchArray | null {
     let [length, scale] = this.adrNumberValidate().split('.'), regExpString = `^(\\+|\\-)?([\\d]{0,${+length}})`,
       checkPattern: RegExpMatchArray | null = null;
