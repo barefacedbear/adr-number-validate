@@ -1,63 +1,69 @@
-# NumberValidate
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.2.0.
+# @dravishek/number-validate
 
-## Code scaffolding
+Angular 16+ directive to validate number length before and after decimal point.
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+## Installation
 
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+1. Install the NPM package
 
 ```bash
-ng generate --help
+npm install @dravishek/number-validate
 ```
 
-## Building
+2. In your application, import the Directive. This directive is standalone so you need to declare it in the `import[]`.
 
-To build the library, run:
+Example:
 
-```bash
-ng build number-validate
+- For standalone components:
+
+```typescript
+import { AdrNumberValidateDirective } from '@dravishek/number-validate';
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'app-root',
+  standalone: true,
+  imports: [AdrNumberValidateDirective]
+})
+export class AppComponent {
+  title = 'adr-number-validate';
+}
 ```
 
-This command will compile your project, and the build artifacts will be placed in the `dist/` directory.
+- For non-standalone components:
 
-### Publishing the Library
+```typescript
+import { AdrNumberValidateDirective } from '@dravishek/number-validate';
 
-Once the project is built, you can publish your library by following these steps:
-
-1. Navigate to the `dist` directory:
-   ```bash
-   cd dist/number-validate
-   ```
-
-2. Run the `npm publish` command to publish your library to the npm registry:
-   ```bash
-   npm publish
-   ```
-
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
-
-```bash
-ng test
+@NgModule({
+  declarations: [],
+  imports: [AdrNumberValidateDirective]
+})
+export class AppModule { }
 ```
 
-## Running end-to-end tests
+## Usage
 
-For end-to-end (e2e) testing, run:
+- For decimal numbers
 
-```bash
-ng e2e
+```html
+<input type="text" adrNumberValidate="2.5" />
 ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+- For non decimal numbers
 
-## Additional Resources
+```html
+<input type="text" adrNumberValidate="2" />
+```
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+## Social
+
+[![@barefacedbear](https://skillicons.dev/icons?i=github)](https://github.com/barefacedbear)
+[![mailto:barefaced.bear2018@gmail.com](https://skillicons.dev/icons?i=gmail)](mailto:barefaced.bear2018@gmail.com)
+[![Avishek Datta Ray](https://skillicons.dev/icons?i=linkedin)](https://www.linkedin.com/in/avishekdr-2611)
+[![https://stackoverflow.com/users/11954878/avishekdr](https://skillicons.dev/icons?i=stackoverflow)](https://stackoverflow.com/users/11954878/avishekdr)
+
+## License
+
+[![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/)
