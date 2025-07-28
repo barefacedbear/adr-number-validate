@@ -53,7 +53,10 @@ export class AdrNumberValidateDirective implements DoCheck {
       let currentValue: string = this.el.nativeElement.value;
       if (currentValue && !this.checkValue(currentValue)) {
         this.control?.control && this.control.control.patchValue(+oldValue);
-        this.el.nativeElement.value = oldValue;
+        this.el.nativeElement.value = +oldValue;
+      } else {
+        this.control?.control && this.control.control.patchValue(+currentValue);
+        this.el.nativeElement.value = currentValue && !isNaN(+currentValue) ? +currentValue : '';
       }
     });
   }
