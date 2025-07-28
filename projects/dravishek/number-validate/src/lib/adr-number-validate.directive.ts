@@ -30,13 +30,22 @@ export class AdrNumberValidateDirective implements DoCheck {
       this.previousValue = currentValue;
     }
   }
-  
+
   private checkValue(value: string): RegExpMatchArray | null {
-    let [length, scale] = this.adrNumberValidate().split('.'), regExpString = `^(\\+|\\-)?([\\d]{0,${+length}})`,
-      checkPattern: RegExpMatchArray | null = null;
+    const [prefix, scale] = this.adrNumberValidate().split('.'), PREFIX_DETAIL = this.extractSignWithLength(prefix);
+    let regExpString = `^(${PREFIX_DETAIL.symbol})?([\\d]{0,${PREFIX_DETAIL.prefix}})`, checkPattern: RegExpMatchArray | null = null;
     if (+scale > 0) { regExpString += `((\\.{1})([\\d]{1,${+scale}})?)` }
     checkPattern = String(value).match(new RegExp(`${regExpString}?$`));
     return checkPattern;
+  }
+
+  private extractSignWithLength(prefix: string) {
+    const char = prefix.charAt(0);
+    if (char) {
+      const sign: Record<string, string> = { '+': '\\+', '-': '\\-' }, symbol = sign[char] ?? '\\+|\\-', firstChar = +(sign[char] ? prefix[1] : prefix[0]);
+      return { symbol, prefix: firstChar };
+    }
+    return { symbol: '\\+|\\-', prefix: 0 };
   }
 
   private execute(oldValue: string) {
