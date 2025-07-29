@@ -31,32 +31,97 @@ export class AdrNumberValidateDirective implements DoCheck {
     }
   }
 
+  /**
+   * Validates the input string against a dynamically constructed regular expression
+   * based on the ADR number format specification.
+   *
+   * The format is determined by splitting the result of `adrNumberValidate()` into
+   * a prefix and scale. The prefix is used to extract the allowed sign and digit length,
+   * while the scale determines the number of digits allowed after the decimal point.
+   *
+   * @param value - The input string to validate.
+   * @returns A `RegExpMatchArray` if the input matches the constructed regular expression,
+   *          or `null` if it does not match.
+   */
   private checkValue(value: string): RegExpMatchArray | null {
-    const [prefix, scale] = this.adrNumberValidate().split('.'), PREFIX_DETAIL = this.extractSignWithLength(prefix);
-    let regExpString = `^(${PREFIX_DETAIL.symbol})?([\\d]{0,${PREFIX_DETAIL.prefix}})`, checkPattern: RegExpMatchArray | null = null;
-    if (+scale > 0) { regExpString += `((\\.{1})([\\d]{1,${+scale}})?)` }
-    checkPattern = String(value).match(new RegExp(`${regExpString}?$`));
-    return checkPattern;
-  }
-
-  private extractSignWithLength(prefix: string) {
-    const char = prefix.charAt(0);
-    if (char) {
-      const sign: Record<string, string> = { '+': '\\+', '-': '\\-' }, symbol = sign[char] ?? '\\+|\\-', firstChar = +(sign[char] ? prefix[1] : prefix[0]);
-      return { symbol, prefix: firstChar };
+    const [prefix, scale] = this.adrNumberValidate().split('.'), { regex, prefix: maxDigitsBeforeDecimal } = this.extractSignWithLength(prefix);
+    let regExpString = `^(${regex}{1,${maxDigitsBeforeDecimal}})`;
+    if (+scale > 0) {
+      regExpString += `(\\.{1}[\\d]{0,${+scale}})?`;
     }
-    return { symbol: '\\+|\\-', prefix: 0 };
+    const fullRegex = new RegExp(`${regExpString}$`);
+    return value.match(fullRegex);
   }
 
+  /**
+   * Extracts the sign and digit length from a given prefix string and generates a corresponding regex pattern.
+   *
+   * The prefix should be in the format of an optional sign ('-' or '+') followed by one or more digits (e.g., "-3", "+2", "5").
+   * The function returns an object containing:
+   * - `regex`: A string representing the regex pattern for the sign and digit.
+   * - `prefix`: The number of digits specified in the prefix.
+   *
+   * If the prefix does not match the expected format, a default regex pattern and prefix value are returned.
+   *
+   * @param prefix - The string containing an optional sign and digit count.
+   * @returns An object with `regex` (string) and `prefix` (number) properties.
+   */
+  private extractSignWithLength(prefix: string) {
+    const signMatch = prefix.match(/^([-+]?)(\d+)$/);
+    if (signMatch) {
+      const sign = signMatch[1]; // "-" or "+"
+      const digitCount = +signMatch[2];
+      // Enforce mandatory sign if specified
+      let signRegex = '';
+      const signRegexMap: { [key: string]: string } = { '-': '\\-', '+': '\\+?' };
+      signRegex = signRegexMap[sign] ?? '[-+]?';
+      return { regex: `${signRegex}\\d`, prefix: digitCount };
+    }
+    return { regex: '[-+]?\\d', prefix: 0 };
+  }
+
+  /**
+   * Handles input validation and value patching for ADR number fields.
+   *
+   * This method enforces sign rules based on the validation pattern:
+   * - If a negative sign is required, the value must start with '-'.
+   * - If a positive sign is required, the value must not start with '-'.
+   * - If no sign is required, any value is allowed.
+   *
+   * The method allows intermediate input states (e.g., "-", "-.", "-12.") to support user typing.
+   * If the input does not meet the required sign rules or is invalid, it reverts to the previous value.
+   * Otherwise, it patches the control value with the parsed number or the current string value,
+   * preserving intermediate states and empty input.
+   *
+   * @param oldValue - The previous valid value of the input, used to revert in case of invalid input.
+   */
   private execute(oldValue: string) {
     setTimeout(() => {
-      let currentValue: string = this.el.nativeElement.value;
-      if (currentValue && !this.checkValue(currentValue)) {
-        this.control?.control && this.control.control.patchValue(+oldValue);
-        this.el.nativeElement.value = +oldValue;
+      const inputElement = this.el.nativeElement as HTMLInputElement, currentValue: string = inputElement.value,
+        pattern = this.adrNumberValidate(), requiresNegative = pattern.startsWith('-'), requiresPositive = pattern.startsWith('+');
+      // Enforce sign rules:
+      // - If negative is required, must start with '-'
+      // - If positive is required, must NOT start with '-' (but '+' is optional)
+      const hasRequiredSign =
+        (!requiresNegative && !requiresPositive) ||
+        (requiresNegative && currentValue.startsWith('-')) ||
+        (requiresPositive && !currentValue.startsWith('-'));
+      // If the sign is missing and required, reject immediately
+      if (!hasRequiredSign && currentValue !== '') {
+        this.control?.control?.patchValue(0);
+        inputElement.value = '';
+        return;
+      }
+      // Allow intermediate states like "-", "-.", "-12.", etc.
+      const isIntermediate = /^-?$|^\.$|^-?\.$|^-?\d+\.$|^\d+\.$/.test(currentValue), isValid = this.checkValue(currentValue);
+      if (currentValue === '' || isValid || isIntermediate) {
+        this.previousValue = currentValue;
+        const endsWithDot = currentValue.endsWith('.'),
+          patchValue = currentValue === '' ? '' : (!endsWithDot && !isNaN(+currentValue)) ? +currentValue : currentValue;
+        this.control?.control?.patchValue(patchValue);
       } else {
-        this.control?.control && this.control.control.patchValue(+currentValue);
-        this.el.nativeElement.value = currentValue && !isNaN(+currentValue) ? +currentValue : '';
+        inputElement.value = oldValue;
+        this.control?.control?.patchValue(isNaN(+oldValue) ? oldValue : +oldValue);
       }
     });
   }

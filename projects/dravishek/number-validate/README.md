@@ -45,6 +45,8 @@ export class AppModule { }
 
 ## Usage
 
+### Accepting both positive & negative numbers (including 0)
+
 - For decimal numbers
 
 ```html
@@ -55,6 +57,34 @@ export class AppModule { }
 
 ```html
 <input type="text" adrNumberValidate="2" />
+```
+
+### Accepting only positive numbers (including 0)
+
+- For decimal numbers
+
+```html
+<input type="text" adrNumberValidate="+2.5" />
+```
+
+- For non decimal numbers
+
+```html
+<input type="text" adrNumberValidate="+2" />
+```
+
+### Accepting only negative numbers (excluding 0)
+
+- For decimal numbers
+
+```html
+<input type="text" adrNumberValidate="-2.5" />
+```
+
+- For non decimal numbers
+
+```html
+<input type="text" adrNumberValidate="-2" />
 ```
 
 ## Social
