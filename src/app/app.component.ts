@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms';
 @Component({
   selector: 'app-root',
   imports: [AdrNumberValidateDirective, FormsModule],
-  template: '<input type="text" [(ngModel)]="abc" adrNumberValidate="-2.5" />'
+  template: '<input type="text" [(ngModel)]="abc" adrNumberValidate="5.5" />{{abc}}'
 })
 export class AppComponent {
   title = 'adr-number-validate';

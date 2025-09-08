@@ -1,13 +1,15 @@
+import { DecimalPipe } from '@angular/common';
 import { Directive, DoCheck, ElementRef, HostListener, input, Optional } from '@angular/core';
 import { NgControl } from '@angular/forms';
 
 @Directive({
   selector: '[adrNumberValidate]',
-  standalone: true
+  standalone: true,
+  providers: [DecimalPipe]
 })
 export class AdrNumberValidateDirective implements DoCheck {
 
-  constructor(private el: ElementRef, @Optional() private control: NgControl) { }
+  constructor(private el: ElementRef, private decimalPipe: DecimalPipe, @Optional() private control: NgControl) { }
 
   /**
    * @description Value before the decimal point specifies the number of digits before decimal and value after the decimal specifies the number of digits after decimal.
@@ -22,6 +24,12 @@ export class AdrNumberValidateDirective implements DoCheck {
 
   @HostListener("paste", ["$event"])
   onPaste = (event: ClipboardEvent) => this.execute(this.el.nativeElement.value);
+
+  @HostListener('focus')
+  onFocus() {
+    const input = this.el.nativeElement as HTMLInputElement;
+    input.value = input.value.replace(/,/g, '');
+  }
 
   ngDoCheck(): void {
     const currentValue = this.el.nativeElement.value;
@@ -72,9 +80,8 @@ export class AdrNumberValidateDirective implements DoCheck {
       const sign = signMatch[1]; // "-" or "+"
       const digitCount = +signMatch[2];
       // Enforce mandatory sign if specified
-      let signRegex = '';
-      const signRegexMap: { [key: string]: string } = { '-': '\\-', '+': '\\+?' };
-      signRegex = signRegexMap[sign] ?? '[-+]?';
+      const signRegexMap: { [key: string]: string } = { '-': '\\-', '+': '\\+?' },
+       signRegex = signRegexMap[sign] ?? '[-+]?';
       return { regex: `${signRegex}\\d`, prefix: digitCount };
     }
     return { regex: '[-+]?\\d', prefix: 0 };
@@ -92,12 +99,13 @@ export class AdrNumberValidateDirective implements DoCheck {
    * If the input does not meet the required sign rules or is invalid, it reverts to the previous value.
    * Otherwise, it patches the control value with the parsed number or the current string value,
    * preserving intermediate states and empty input.
+   * It also formats the input value with thousand separators when appropriate.
    *
    * @param oldValue - The previous valid value of the input, used to revert in case of invalid input.
    */
   private execute(oldValue: string) {
     setTimeout(() => {
-      const inputElement = this.el.nativeElement as HTMLInputElement, currentValue: string = inputElement.value,
+      const inputElement = this.el.nativeElement as HTMLInputElement, currentValue: string = inputElement.value.replace(/,/g, ''),
         pattern = this.adrNumberValidate(), requiresNegative = pattern.startsWith('-'), requiresPositive = pattern.startsWith('+');
       // Enforce sign rules:
       // - If negative is required, must start with '-'
@@ -119,6 +127,16 @@ export class AdrNumberValidateDirective implements DoCheck {
         const endsWithDot = currentValue.endsWith('.'),
           patchValue = currentValue === '' ? '' : (!endsWithDot && !isNaN(+currentValue)) ? +currentValue : currentValue;
         this.control?.control?.patchValue(patchValue);
+        // Format view only if it's a valid number and not intermediate
+        if (!isIntermediate && !isNaN(+currentValue)) {
+          const [intPart, decimalPart] = currentValue.split('.');
+          const formatted = this.decimalPipe.transform(intPart, '1.0-0');
+          inputElement.value = decimalPart
+            ? `${formatted}.${decimalPart}`
+            : formatted ?? '';
+        } else {
+          inputElement.value = currentValue;
+        }
       } else {
         inputElement.value = oldValue;
         this.control?.control?.patchValue(isNaN(+oldValue) ? oldValue : +oldValue);
