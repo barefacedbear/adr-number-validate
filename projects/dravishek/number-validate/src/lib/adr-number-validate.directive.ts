@@ -1,13 +1,14 @@
 import { DecimalPipe } from '@angular/common';
-import { Directive, DoCheck, ElementRef, HostListener, input, Optional } from '@angular/core';
+import { Directive, ElementRef, HostListener, input, OnDestroy, OnInit, Optional } from '@angular/core';
 import { NgControl } from '@angular/forms';
+import { Subscription } from 'rxjs';
 
 @Directive({
   selector: '[adrNumberValidate]',
   standalone: true,
   providers: [DecimalPipe]
 })
-export class AdrNumberValidateDirective implements DoCheck {
+export class AdrNumberValidateDirective implements OnInit, OnDestroy {
 
   constructor(private el: ElementRef, private decimalPipe: DecimalPipe, @Optional() private control: NgControl) { }
 
@@ -18,25 +19,38 @@ export class AdrNumberValidateDirective implements DoCheck {
   */
   adrNumberValidate = input<string>('');
   private previousValue: string = '';
+  private valueChangeSub?: Subscription;
 
   @HostListener("keydown", ["$event"])
-  onKeyDown = (event: KeyboardEvent) => this.execute(this.el.nativeElement.value);
-
   @HostListener("paste", ["$event"])
-  onPaste = (event: ClipboardEvent) => this.execute(this.el.nativeElement.value);
+  onValueChange = (event: KeyboardEvent) => this.execute(this.el.nativeElement.value);
 
-  @HostListener('focus')
-  onFocus() {
-    const input = this.el.nativeElement as HTMLInputElement;
-    input.value = input.value.replace(/,/g, '');
+  /**
+   * Lifecycle hook that is called after data-bound properties of a directive are initialized.
+   * Subscribes to value changes of the associated form control, and executes custom logic
+   * whenever the value changes and is different from the previous value.
+   *
+   * @remarks
+   * This method sets up a subscription to the form control's `valueChanges` observable.
+   * When the value changes, it checks if the new value is different from the previous value.
+   * If so, it calls the `execute` method with the previous value and updates the `previousValue`.
+   */
+  ngOnInit(): void {
+    if (this.control?.control) {
+      this.valueChangeSub = this.control.control.valueChanges.subscribe(
+        (value: any) => {
+          const currentValue = value?.toString() ?? '';
+          if (currentValue !== this.previousValue) {
+            this.execute(this.previousValue);
+            this.previousValue = currentValue;
+          }
+        }
+      );
+    }
   }
 
-  ngDoCheck(): void {
-    const currentValue = this.el.nativeElement.value;
-    if (currentValue !== this.previousValue) {
-      this.execute(this.previousValue);
-      this.previousValue = currentValue;
-    }
+  ngOnDestroy(): void {
+    this.valueChangeSub?.unsubscribe();
   }
 
   /**
