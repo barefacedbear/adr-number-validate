@@ -1,16 +1,14 @@
-import { DecimalPipe } from '@angular/common';
 import { Directive, ElementRef, HostListener, input, OnDestroy, OnInit, Optional } from '@angular/core';
 import { NgControl } from '@angular/forms';
 import { Subscription } from 'rxjs';
 
 @Directive({
   selector: '[adrNumberValidate]',
-  standalone: true,
-  providers: [DecimalPipe]
+  standalone: true
 })
 export class AdrNumberValidateDirective implements OnInit, OnDestroy {
 
-  constructor(private el: ElementRef, private decimalPipe: DecimalPipe, @Optional() private control: NgControl) { }
+  constructor(private el: ElementRef, @Optional() private control: NgControl) { }
 
   /**
    * @description Value before the decimal point specifies the number of digits before decimal and value after the decimal specifies the number of digits after decimal.
@@ -65,8 +63,8 @@ export class AdrNumberValidateDirective implements OnInit, OnDestroy {
    * @returns A `RegExpMatchArray` if the input matches the constructed regular expression,
    *          or `null` if it does not match.
    */
-  private checkValue(value: string): RegExpMatchArray | null {
-    const [prefix, scale] = this.adrNumberValidate().split('.'), { regex, prefix: maxDigitsBeforeDecimal } = this.extractSignWithLength(prefix);
+  private checkValue(value: string, prefix: string, scale: string): RegExpMatchArray | null {
+    const { regex, prefix: maxDigitsBeforeDecimal } = this.extractSignWithLength(prefix);
     let regExpString = `^(${regex}{1,${maxDigitsBeforeDecimal}})`;
     if (+scale > 0) {
       regExpString += `(\\.{1}[\\d]{0,${+scale}})?`;
@@ -119,8 +117,9 @@ export class AdrNumberValidateDirective implements OnInit, OnDestroy {
    */
   private execute(oldValue: string) {
     setTimeout(() => {
-      const inputElement = this.el.nativeElement as HTMLInputElement, currentValue: string = inputElement.value.replace(/,/g, ''),
-        pattern = this.adrNumberValidate(), requiresNegative = pattern.startsWith('-'), requiresPositive = pattern.startsWith('+');
+      const inputElement = this.el.nativeElement as HTMLInputElement, pattern = this.adrNumberValidate(),
+        requiresNegative = pattern.startsWith('-'), requiresPositive = pattern.startsWith('+'),
+        [prefix, scale] = pattern.split('.'), currentValue: string = this.formatNumber(inputElement.value.replace(/,/g, ''), +scale || 0).replace(/,/g, '');
       // Enforce sign rules:
       // - If negative is required, must start with '-'
       // - If positive is required, must NOT start with '-' (but '+' is optional)
@@ -135,7 +134,7 @@ export class AdrNumberValidateDirective implements OnInit, OnDestroy {
         return;
       }
       // Allow intermediate states like "-", "-.", "-12.", etc.
-      const isIntermediate = /^-?$|^\.$|^-?\.$|^-?\d+\.$|^\d+\.$/.test(currentValue), isValid = this.checkValue(currentValue);
+      const isIntermediate = /^-?$|^\.$|^-?\.$|^-?\d+\.$|^\d+\.$/.test(currentValue), isValid = this.checkValue(currentValue, prefix, scale);
       if (currentValue === '' || isValid || isIntermediate) {
         this.previousValue = currentValue;
         const endsWithDot = currentValue.endsWith('.'),
@@ -143,11 +142,7 @@ export class AdrNumberValidateDirective implements OnInit, OnDestroy {
         this.control?.control?.patchValue(patchValue);
         // Format view only if it's a valid number and not intermediate
         if (!isIntermediate && !isNaN(+currentValue)) {
-          const [intPart, decimalPart] = currentValue.split('.');
-          const formatted = this.decimalPipe.transform(intPart, '1.0-0');
-          inputElement.value = decimalPart
-            ? `${formatted}.${decimalPart}`
-            : formatted ?? '';
+          inputElement.value = this.formatNumber(currentValue, +scale || 0);
         } else {
           inputElement.value = currentValue;
         }
@@ -156,5 +151,9 @@ export class AdrNumberValidateDirective implements OnInit, OnDestroy {
         this.control?.control?.patchValue(isNaN(+oldValue) ? oldValue : +oldValue);
       }
     });
+  }
+
+  private formatNumber(value: string, scale = 0): string {
+    return new Intl.NumberFormat('en-US', { minimumFractionDigits: 0, maximumFractionDigits: scale }).format(+value);
   }
 }
