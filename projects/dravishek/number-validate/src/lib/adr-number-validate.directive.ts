@@ -119,7 +119,7 @@ export class AdrNumberValidateDirective implements OnInit, OnDestroy {
     setTimeout(() => {
       const inputElement = this.el.nativeElement as HTMLInputElement, pattern = this.adrNumberValidate(),
         requiresNegative = pattern.startsWith('-'), requiresPositive = pattern.startsWith('+'),
-        [prefix, scale] = pattern.split('.'), currentValue: string = this.formatNumber(inputElement.value.replace(/,/g, ''), +scale || 0).replace(/,/g, '');
+        [prefix, scale] = pattern.split('.'), currentValue: string = inputElement.value.replace(/,/g, '');
       // Enforce sign rules:
       // - If negative is required, must start with '-'
       // - If positive is required, must NOT start with '-' (but '+' is optional)
@@ -134,7 +134,7 @@ export class AdrNumberValidateDirective implements OnInit, OnDestroy {
         return;
       }
       // Allow intermediate states like "-", "-.", "-12.", etc.
-      const isIntermediate = /^-?$|^\.$|^-?\.$|^-?\d+\.$|^\d+\.$/.test(currentValue), isValid = this.checkValue(currentValue, prefix, scale);
+      const isIntermediate = /^-?$|^\.$|^-?\.$|^-?\d+\.$|^\d+\.$/.test(currentValue), isValid = this.checkValue(this.formatNumber(currentValue, +scale).replace(/,/g, ''), prefix, scale);
       if (currentValue === '' || isValid || isIntermediate) {
         this.previousValue = currentValue;
         const endsWithDot = currentValue.endsWith('.'),
