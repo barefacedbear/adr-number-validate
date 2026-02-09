@@ -20,8 +20,19 @@ export class AdrNumberValidateDirective implements OnInit, OnDestroy {
   private valueChangeSub?: Subscription;
 
   @HostListener("keydown", ["$event"])
+  onKeyDown = (event: KeyboardEvent) => {
+    const navKeys = new Set([
+      'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
+      'Home', 'End', 'Tab', 'Shift', 'Control', 'Alt', 'Meta',
+    ]);
+    if (navKeys.has(event.key)) return;
+    this.execute(this.el.nativeElement.value)
+  };
+
   @HostListener("paste", ["$event"])
-  onValueChange = (event: KeyboardEvent) => this.execute(this.el.nativeElement.value);
+  onPaste(_e: ClipboardEvent) {
+    setTimeout(() => this.execute(this.el.nativeElement.value), 0);
+  }
 
   /**
    * Lifecycle hook that is called after data-bound properties of a directive are initialized.
