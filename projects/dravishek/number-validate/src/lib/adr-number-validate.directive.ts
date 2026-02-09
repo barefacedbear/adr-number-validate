@@ -21,6 +21,9 @@ export class AdrNumberValidateDirective implements OnInit, OnDestroy {
 
   @HostListener("keydown", ["$event"])
   onKeyDown = (event: KeyboardEvent) => {
+    if ((event.ctrlKey || event.metaKey) && ['a', 'c', 'x', 'v', 'z', 'y'].includes(event.key.toLowerCase())) {
+      return;
+    }
     const navKeys = new Set([
       'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
       'Home', 'End', 'Tab', 'Shift', 'Control', 'Alt', 'Meta',
