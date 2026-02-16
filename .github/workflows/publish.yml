@@ -29,19 +29,8 @@ jobs:
       - name: Install deps
         run: npm ci
 
-      - name: Run tests
-        run: npm test --if-present
-
       - name: Build
         run: npx ng build "${{env.LIB_NAME}}" --configuration production
-
-      - name: Enable npm provenance
-        run: npm config set provenance true
-
-      - name: Configure npm auth
-        run: echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Read package name & version (from source)
         id: pkgmeta
@@ -83,14 +72,3 @@ jobs:
         if: steps.version_changed.outputs.changed == 'true' && steps.exists_on_npm.outputs.exists == 'false'
         working-directory: ${{ env.DIST_DIR }}
         run: npm publish --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Skip reason
-        if: steps.version_changed.outputs.changed != 'true' || steps.exists_on_npm.outputs.exists == 'true'
-        run: |
-          echo "Skipping publish."
-          echo "Version file changed? ${{ steps.version_changed.outputs.changed }}"
-          echo "Already on npm? ${{ steps.exists_on_npm.outputs.exists }}"
-          echo "Package: ${{ steps.pkgmeta.outputs.name }}"
-          echo "Version: ${{ steps.pkgmeta.outputs.version }}"

@@ -1,6 +1,9 @@
 {
   "name": "@dravishek/number-validate",
   "version": "1.2.5",
+  "publishConfig": {
+    "access": "public"
+  },
   "keywords": [
     "angular",
     "javascript",
