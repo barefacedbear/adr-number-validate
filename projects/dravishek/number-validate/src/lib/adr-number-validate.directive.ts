@@ -14,7 +14,7 @@ export class AdrNumberValidateDirective implements OnInit, OnDestroy {
    * @description Value before the decimal point specifies the number of digits before decimal and value after the decimal specifies the number of digits after decimal.
    * Example: 7.3 (Before decimal 7 digits & 3 digits after decimal)
    * Possible type of patterns allowed: X, X.X
-  */
+   */
   adrNumberValidate = input<string>('');
   private previousValue: string = '';
   private valueChangeSub?: Subscription;
@@ -29,12 +29,30 @@ export class AdrNumberValidateDirective implements OnInit, OnDestroy {
       'Home', 'End', 'Tab', 'Shift', 'Control', 'Alt', 'Meta',
     ]);
     if (navKeys.has(event.key)) return;
-    this.execute(this.el.nativeElement.value)
+    this.execute(this.el.nativeElement.value);
   };
 
   @HostListener("paste", ["$event"])
   onPaste(_e: ClipboardEvent) {
     setTimeout(() => this.execute(this.el.nativeElement.value), 0);
+  }
+
+  /**
+   * Remove thousand separators on focus so the user edits the raw number
+   * (avoids caret jumps while typing).
+   */
+  @HostListener('focus')
+  onFocus() {
+    const input = this.el.nativeElement as HTMLInputElement;
+    input.value = input.value.replace(/,/g, '');
+  }
+
+  /**
+   * Format the view (thousand separators, trailing zeros / dot trimmed) only when the user leaves the field.
+   */
+  @HostListener('blur')
+  onBlur() {
+    this.execute(this.previousValue, true);
   }
 
   /**
@@ -75,7 +93,7 @@ export class AdrNumberValidateDirective implements OnInit, OnDestroy {
    *
    * @param value - The input string to validate.
    * @returns A `RegExpMatchArray` if the input matches the constructed regular expression,
-   *          or `null` if it does not match.
+   * or `null` if it does not match.
    */
   private checkValue(value: string, prefix: string, scale: string): RegExpMatchArray | null {
     const { regex, prefix: maxDigitsBeforeDecimal } = this.extractSignWithLength(prefix);
@@ -125,11 +143,13 @@ export class AdrNumberValidateDirective implements OnInit, OnDestroy {
    * If the input does not meet the required sign rules or is invalid, it reverts to the previous value.
    * Otherwise, it patches the control value with the parsed number or the current string value,
    * preserving intermediate states and empty input.
-   * It also formats the input value with thousand separators when appropriate.
+   * While typing, the view is left exactly as the user typed it (so "4.0" can become "4.01").
+   * Formatting with thousand separators happens only when `applyFormat` is true (on blur).
    *
    * @param oldValue - The previous valid value of the input, used to revert in case of invalid input.
+   * @param applyFormat - When true (blur), format the view and normalise intermediate states.
    */
-  private execute(oldValue: string) {
+  private execute(oldValue: string, applyFormat = false) {
     setTimeout(() => {
       const inputElement = this.el.nativeElement as HTMLInputElement, pattern = this.adrNumberValidate(),
         requiresNegative = pattern.startsWith('-'), requiresPositive = pattern.startsWith('+'),
@@ -148,18 +168,26 @@ export class AdrNumberValidateDirective implements OnInit, OnDestroy {
         return;
       }
       // Allow intermediate states like "-", "-.", "-12.", etc.
-      const isIntermediate = /^-?$|^\.$|^-?\.$|^-?\d+\.$|^\d+\.$/.test(currentValue), isValid = this.checkValue(this.formatNumber(currentValue, +scale).replace(/,/g, ''), prefix, scale);
+      const isIntermediate = /^-?$|^\.$|^-?\.$|^-?\d+\.$|^\d+\.$/.test(currentValue),
+        // Validate the raw string (no formatting/rounding) so extra decimals are rejected, not rounded
+        isValid = this.checkValue(currentValue, prefix, scale);
       if (currentValue === '' || isValid || isIntermediate) {
-        this.previousValue = currentValue;
+        // Blur: normalise and format the view
+        if (applyFormat) {
+          const numeric = currentValue !== '' && !isNaN(+currentValue);
+          // Same string valueChanges will compute, so it doesn't re-run execute() and strip the commas
+          this.previousValue = numeric ? (+currentValue).toString() : '';
+          this.control?.control?.patchValue(numeric ? +currentValue : '');
+          inputElement.value = numeric ? this.formatNumber(currentValue, +scale || 0) : '';
+          return;
+        }
+        // Typing: patch the control, leave the view untouched
         const endsWithDot = currentValue.endsWith('.'),
           patchValue = currentValue === '' ? '' : (!endsWithDot && !isNaN(+currentValue)) ? +currentValue : currentValue;
+        // Must match what valueChanges will see ("4.0" is patched as 4), otherwise valueChanges re-runs execute() in a loop
+        this.previousValue = String(patchValue);
         this.control?.control?.patchValue(patchValue);
-        // Format view only if it's a valid number and not intermediate
-        if (!isIntermediate && !isNaN(+currentValue)) {
-          inputElement.value = this.formatNumber(currentValue, +scale || 0);
-        } else {
-          inputElement.value = currentValue;
-        }
+        inputElement.value = currentValue;
       } else {
         inputElement.value = oldValue;
         this.control?.control?.patchValue(isNaN(+oldValue) ? oldValue : +oldValue);
